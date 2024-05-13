@@ -1,2 +1,2 @@
 # sub_decorator
-a sub title decorator matched for different size video
+字幕美化程序，根据视频文件的尺寸对已有字幕进行美化处理。
