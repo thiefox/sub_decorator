@@ -5,7 +5,12 @@ import sys
 import os
 import time
 
-os.environ["IMAGEIO_FFMPEG_EXE"] = "d:\\bin\\ffmpeg\\bin\\ffmpeg.exe"
+#os.environ["IMAGEIO_FFMPEG_EXE"] = "d:\\bin\\ffmpeg\\bin\\ffmpeg.exe"
+
+from com_utils import global_data
+FFMPEG_PATH = global_data.bm_config.get_ffmpeg_path()
+if os.path.isfile(FFMPEG_PATH) :
+    os.environ["IMAGEIO_FFMPEG_EXE"] = FFMPEG_PATH
 
 from datetime import datetime 
 

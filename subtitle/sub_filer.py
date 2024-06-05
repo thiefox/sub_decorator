@@ -217,7 +217,7 @@ class sub_filer(object) :
     
     #字幕语言信息检测
     def analysis(self) :
-        print('开始-sub filer::analysis...')
+        print('开始-sub filer::analysis(分析), 总事件数={}...'.format(len(self.events)))
         lm = defs.SUB_EVENT_LANG_MODE()
         lm.path_file = self.file_name
         DOUBLE_RATIO = 0.6
@@ -251,7 +251,7 @@ class sub_filer(object) :
             #self.BC.LANG_MODE = lm
             self.BC.LANG_MODE = sorted_langs[0][0]
             #self.BC.print()
-            print('结束2-sub filer::analysis, dc={}, ec={}.'.format(double_count, event_count))    
+            print('结束2-sub filer::analysis, 双语/总事件={}/{}.'.format(double_count, event_count))    
             return
         #之后则只按单事件内单语处理（只检测主语言）
         time_matchs = 0         #相同时间轴的事件数量
@@ -334,4 +334,35 @@ class sub_filer(object) :
 
     def is_bigb(self) -> bool :
         return sub_filer.is_bigb_sub(self.file_name)
+    
+    #切换主字幕和次字幕
+    def _switch_sub(self, LEVEL = 0) :
+        print('开始进行主次字幕切换，总数={}...'.format(len(self.events)))
+        cn = 0
+        for event in self.events :
+            if LEVEL == 0 :
+                event.switch_chs_2_main()
+                cn += 1
+            elif LEVEL == 1 :
+                event.switch_force(0)
+                cn += 1
+            else :
+                print('下列事件未发生字幕切换...')
+                event.print()
+                pass
+        if len(self.events) > 0 :
+            print('主次字幕切换完成，切换/总数={}/{}。'.format(cn, len(self.events)))
+        self.BC.switch_sub()
+        return
+
+    #调整双语字幕到合适的状态
+    #如果需要切换则切换后返回TRUE
+    def adjust_double_property(self) -> bool :
+        adjusted = False
+        print('开始检测是否需要主次字幕切换...')
+        if self.get_BC().valid() :
+            if self.get_BC().LM.need_switch(main = defs.SUB_LANG.CHINESE) :
+                self._switch_sub(LEVEL = 0)
+                adjusted = True
+        return adjusted
 

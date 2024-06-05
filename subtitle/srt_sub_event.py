@@ -96,8 +96,10 @@ class srt_sub_event(sub_event) :
             txt = StrHandler.rip_srt_sub_closed_str(super().get_st())
             lm.second_lang = defs.SUB_LANG.check(txt)
         if lm.first_lang.valid() and lm.second_lang.valid() :
-            assert(lm.first_lang.get_int() != lm.second_lang.get_int())
-            lm.is_mixed = True      #单事件内包含双语
+            if lm.first_lang.get_int() == lm.second_lang.get_int() and not lm.first_lang.is_other() :
+                print('异常：主字幕和次字幕为同一语言, int={}.'.format(lm.first_lang.get_int()))
+            #assert(lm.first_lang.get_int() != lm.second_lang.get_int())
+            lm.mixed = True      #单事件内包含双语
         return lm
 
     def set_index(self, index : int) :

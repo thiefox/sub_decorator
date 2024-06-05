@@ -78,6 +78,30 @@ class sub_event(object) :
     #是否双语事件
     def is_double(self) -> bool :
         return self.has_mt() and self.has_st()
+    #私有函数，切换主字幕和次字幕
+    def _switch_txt(self) :
+        tmp = self.main_txt
+        self.main_txt = self.secondary_txt
+        self.secondary_txt = tmp
+        return
+    #把中文字幕切换为主字幕
+    def switch_chs_2_main(self) :
+        if self.is_double() :
+            if self.is_secondary_ch() :
+                self._switch_txt()
+        return
+    #强制切换主次字幕
+    #双语事件直接切换
+    #单语事件，level=1直接切换，level=0且主字幕非中文时切换
+    def switch_force(self, level : int = 0 ) :
+        if self.is_double() :
+            self._switch_txt()
+        else :
+            if level == 1 :
+                self._switch_txt()
+            elif level == 0 and not self.is_main_ch() :
+                self._switch_txt()
+        return
     #最宽松匹配：有一个中文字符，即认为是中文
     def is_main_ch(self) -> bool :
         return StrHandler.get_zh_percent(self.get_mt()) > 0
@@ -119,7 +143,7 @@ class sub_event(object) :
         return updated
     #检测事件的时间戳有效
     def time_valid(self) -> bool :
-        return self.begin_time != datetime.min and self.end_time > self.begin_time
+        return self.begin_time != datetime.min and self.end_time >= self.begin_time
     def set_time_info(self, begin : datetime, end : datetime) :
         self.begin_time = begin
         self.end_time = end
@@ -206,8 +230,18 @@ class sub_event(object) :
             info += '\n'
             info += 'secondary_txt={}'.format(self.secondary_txt)
         return info
+    #时间数据字符串标准化
+    def time_standard(input : str) -> str :
+        output = input.replace(' ', '')
+        REPLACE_ITEMS = (('，', ','), ('：', ':'), ('。', '.'), )
+        for RI in REPLACE_ITEMS :
+            output = output.replace(RI[0], RI[1])
+        return output
+
     #字符串时间转化为时间对象
     def time_info_2_datetime(str_time : str) -> datetime :
+        str_time = sub_event.time_standard(str_time)
+
         SPLITTERS = ('.', ',', ':', )   #毫秒分隔符列表
         time_info = None
 

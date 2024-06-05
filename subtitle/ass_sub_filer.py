@@ -5,6 +5,7 @@ import datetime
 from com_utils import StrHandler
 from com_utils import FileOpWrapper
 from com_utils import config
+from com_utils import global_data
 
 import subtitle.defs as defs
 from subtitle.sub_filer import sub_filer
@@ -46,6 +47,8 @@ class ass_sub_filer(sub_filer) :
     ASS_EVENT_HEADER = 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
     ASS_EVENT_OLD_HEADER = 'Format: Layer, Start, End, Style, Actor, MarginL, MarginR, MarginV, Effect, Text'
 
+    ASS_COMMENT_BEGINNERS = (';', '!:', )
+
     def __init__(self) :
         super().__init__()
         self.play_res_x = 0
@@ -68,6 +71,14 @@ class ass_sub_filer(sub_filer) :
         #self.events = list(other.events)       #复制一份事件
         self.BC = copy.deepcopy(other.BC)
         return 
+    #检测行数据是否为注释行
+    def is_comment_line(self, line : str) -> bool :
+        for CB in ass_sub_filer.ASS_COMMENT_BEGINNERS :
+            if line.startswith(CB) :
+                return True
+        return False
+    def is_data_line(self, line : str) -> bool :
+        return line.lower().lstrip().startswith(ass_sub_event.ASS_EVENT_BEGIN.rstrip())
     def cut_ignore_flags(self, input : str, INSENSITIVE=True) -> str :
         output = input
         for FLAG in self.BC.IGNORE_FLAGS :
@@ -150,15 +161,30 @@ class ass_sub_filer(sub_filer) :
         return index
 
     def build_events(self) -> bool :
+        datas = list()
         self.events = list()
-        datas = StrHandler.read_session(ass_sub_filer.ASS_SESSION_EVENTS, self.lines)
+        #datas = StrHandler.read_session(ass_sub_filer.ASS_SESSION_EVENTS, self.lines)
+        begin = 0
+        while True :
+            end, block = StrHandler.read_session_ex(ass_sub_filer.ASS_SESSION_EVENTS, self.lines, begin)
+            print('读取事件，begin={}, end={}, all_lines={}, read_lines={}'.format(begin, end, len(self.lines), len(block)))
+            if len(block) > 0 :
+                datas.extend(block)
+            if end == begin or end + 1 >= len(self.lines) :
+                break
+            begin = end
+        print('读取事件完成，事件行={}.'.format(len(datas)))
+
         if len(datas) == 0 :
             return
         index = ass_sub_filer.get_event_index(datas[0])
         if index < 0 :
             return False
-
+        print('有效开始索引={}'.format(index))
         for line in datas[index:] :
+            if not self.is_data_line(line) :
+                print('忽略：非有效数据行={}'.format(line))
+                continue
             line = StrHandler.strip_RN(line)
             line = self.cut_ignore_flags(line)
             event = ass_sub_event.build_event(line, self.BC)
@@ -304,7 +330,8 @@ class ass_sub_filer(sub_filer) :
             return None
         self.BC.print()
         print('生成字体大小，main={}, second={}'.format(font_size[0], font_size[1]))
-        global_config = config.bigma_config()
+        #global_config = config.bigma_config()
+        global_config = global_data.bm_config
         BEST_CHS_FONT = global_config.get_subtitle_best_chs_font()
         BEST_ENG_FONT = global_config.get_subtitle_best_eng_font()
 
@@ -366,6 +393,10 @@ class ass_sub_filer(sub_filer) :
         print('共生成({})行数据。'.format(len(lines)))
         for i in range(len(lines)) :
             lines[i] = sub_filer.confirm_new_line_flag(lines[i])
+
+        #繁简转换
+        lines = StrHandler.list_cht_to_chs(lines)
+
         f = open(file_name, mode='w', encoding='utf-8')
         f.writelines(lines)
         f.close()

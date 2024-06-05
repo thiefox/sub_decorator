@@ -30,7 +30,10 @@ class bba_config :
             config = None
         return config
     def __init__(self) -> None :
-        self.parser = configparser.ConfigParser()
+        #self.parser = configparser.ConfigParser()
+        self.parser = configparser.RawConfigParser()
+        self.parser.optionxform = lambda option: option
+
         self.path_dir = ''
         self.level = 0
         self.artist = ''
@@ -99,7 +102,6 @@ class bba_config :
         self.artist_title_spliter = self.get_param(bba_config.SECTION_AUDIOS, bba_config.AUDIOS_KEY_NAME_SPLITER)
         return
 
-
 class bigma_config :
     INI_FILE_NAME = 'sub_decorator.ini'
     SECTION_GLOBAL = 'GENERAL'
@@ -108,6 +110,7 @@ class bigma_config :
     GLOBAL_KEY_LEAKED_DIR = 'BIGA_LEAKED_DIR'
     GLOBAL_KEY_NEWGF_DIR = 'BIGA_NEWGF_DIR'
     GLOBAL_KEY_BIGB_DIRS = 'BIGB_DIRS'
+    GLOBAL_KEY_FFMPEG_PATH = 'FFMPEG_PATH'
 
     SECTION_SUBTITLE = 'SUBTITLE'
     SUBTITLE_KEY_HISTORY_DIRS = 'HISTORY_DIRS'
@@ -125,7 +128,10 @@ class bigma_config :
     
     def __init__(self) :
         #print('bigma_config init calling...')
-        self.parser = configparser.ConfigParser()
+        #self.parser = configparser.ConfigParser()
+        self.parser = configparser.RawConfigParser()
+        self.parser.optionxform = lambda option: option
+
         self.load(bigma_config._get_default_ini())
         return
     def _get_default_ini() :
@@ -154,6 +160,8 @@ class bigma_config :
         return self.get_param(bigma_config.SECTION_SUBTITLE, bigma_config.SUBTITLE_KEY_BEST_CHS_FONT)
     def get_subtitle_best_eng_font(self) -> str :
         return self.get_param(bigma_config.SECTION_SUBTITLE, bigma_config.SUBTITLE_KEY_BEST_ENG_FONT)
+    def get_ffmpeg_path(self) -> str :
+        return self.get_param(bigma_config.SECTION_GLOBAL, bigma_config.GLOBAL_KEY_FFMPEG_PATH)
     def set_param(self, section_name : str, key_name : str, value : str) :
         if not self.parser.has_section(section_name) :
             self.parser.add_section(section_name)

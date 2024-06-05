@@ -196,6 +196,7 @@ def get_best_filer(filers : list) -> sub_filer :
         elif not best.get_lang_mode().is_better(filer.get_lang_mode()) :
             best = filer
     if best is not None :
+        assert(isinstance(best, sub_filer))
         print('找到最优字幕文件={}。'.format(best.get_file_name()))
         best.get_lang_mode().print()
     return best
@@ -266,6 +267,12 @@ class sub_generate_task(TaskManager.Task_Impl_Base) :
             #以ass格式保存bigb系列字幕
             print('开始生成bigb系列字幕...')
             ass_filer = force_2_ass_filer(best_filer)
+            ass_filer.get_BC().print()
+            #处理主次字幕切换
+            if ass_filer.adjust_double_property() :
+                print('切换主次字幕后重新打印控制器...')
+                ass_filer.get_BC().print()
+
             t_end = datetime.now()
             if (t_end - t_begin).seconds > MAX_SECONDS :
                 print('异常：强制切换到ASS模式处理时间过长={}秒'.format((t_end-t_begin).seconds))

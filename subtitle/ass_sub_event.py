@@ -149,6 +149,7 @@ class ass_sub_event(sub_event) :
             str_end = ass_sub_event.format_datetime(self.end_time + timedelta(milliseconds=bc.get_offset()))
         line = ''
         XYZ_info = self.output_XYZ_data()
+        #print('事件输出，特效={}, rc={}, raw={}'.format(self.is_effect(), len(self.get_raw()), self.get_raw()))
         if self.is_effect() :       #特效字幕
             line = ASS_EVENT_SINGLE_FORMAT.format(str_begin, str_end, main_style, XYZ_info, self._get_text())
         else :
@@ -213,13 +214,18 @@ class ass_sub_event(sub_event) :
     #Double=0未知，=1单语，=2双语。
     #老的函数名：rip_ass_line_ex
     def build_event(line : str, bc : defs.build_controller) -> ass_sub_event :
+        #print('处理行数据={}'.format(line))
         event = ass_sub_event()
+        event.set_raw([line])
+        #event.raw_lines.append(line)
+
         if not event.build_time(line) :
             return None
         assert(event.time_valid())
         text = ass_sub_event.get_text(line)
         if text == '' or ass_sub_event.is_watermark(text) :   #水印数据
             return None
+        
         if ass_sub_event.is_effect_event(line, bc.IGNORE_XYZ) :
             event.effect = True      #特效事件
 

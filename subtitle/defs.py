@@ -130,6 +130,28 @@ class SUB_LANG(Enum) :
         return obj
     def get_int(self) -> int :
         return self.eval
+    def is_other(self) -> bool :
+        return self == SUB_LANG.OTHER_LANG
+    def is_ch(self) -> bool :
+        return self == SUB_LANG.CHINESE or self == SUB_LANG.CHT
+    def is_eng(self) -> bool :
+        return self == SUB_LANG.ENGLISH
+    def is_jap(self) -> bool :
+        return self == SUB_LANG.JAPANESE
+    def is_korean(self) -> bool :
+        return self == SUB_LANG.KOREAN
+    def is_JK(self) -> bool :
+        return self.is_jap() or self.is_korean()
+    def is_east_asia(self) -> bool :
+        return self.is_ch() or self.is_JK()
+    #是否同一个语言（简体和繁体为同一语言）
+    def is_same_language(self, other : SUB_LANG) -> bool :
+        samed = False
+        if self.is_ch() and other.is_ch() :
+            samed = True
+        elif self.valid() :
+            samed = self == other
+        return samed
     def get_name(self) -> str :
         return self.desc
     def error(self) -> bool :
@@ -241,26 +263,26 @@ class SUB_EVENT_LANG_MODE(object):
         return self.first_lang.valid()
     #主字幕是否中文
     def is_main_ch(self) -> bool :
-        return self.first_lang == SUB_LANG.CHINESE or self.first_lang == SUB_LANG.CHT
+        return self.first_lang.is_ch()
     #主字幕是否英文
     def is_main_eng(self) -> bool :
-        return self.first_lang == SUB_LANG.ENGLISH
+        return self.first_lang.is_eng()
     #主字幕是否日韩
     def is_main_JK(self) -> bool :
-        return self.first_lang == SUB_LANG.JAPANESE or self.first_lang == SUB_LANG.KOREAN
+        return self.first_lang.is_JK()
     #主字幕是否东亚语言
     def is_main_east_asia(self) -> bool :
-        return self.is_main_ch() or self.is_main_JK()
+        return self.first_lang.is_east_asia()
     #次字幕是否中文（一般不合理）
     def is_second_ch(self) -> bool :
-        return self.second_lang == SUB_LANG.CHINESE or self.second_lang == SUB_LANG.CHT
+        return self.second_lang.is_ch()
     #次字幕是否英文
     def is_second_eng(self) -> bool :
-        return self.second_lang == SUB_LANG.ENGLISH
+        return self.second_lang.is_eng()
     def is_second_JK(self) -> bool :
-        return self.second_lang == SUB_LANG.JAPANESE or self.second_lang == SUB_LANG.KOREAN
+        return self.second_lang.is_JK()
     def is_second_east_asia(self) -> bool :
-        return self.is_second_ch() or self.is_second_JK()
+        return self.second_lang.is_east_asia()
     #是否单语字幕
     def is_single(self) -> bool :
         return self.first_lang.valid() and not self.second_lang.valid() 
@@ -287,6 +309,19 @@ class SUB_EVENT_LANG_MODE(object):
             else :      #分离双语模式，无论是分区分离还是螺旋分离都一样
                 mode = SUB_MERGER_MODE.MAIN_TO_SECONDARY
         return mode
+    #是否需要切换主字幕和次字幕
+    #main: 首选的主字幕语言，默认为中文
+    def need_switch(self, main : SUB_LANG = SUB_LANG.CHINESE) -> bool :
+        need = False
+        if self.is_double() :
+            if not self.first_lang.is_same_language(main) and self.second_lang.is_same_language(main) :
+                need = True
+        return need
+    def switch_sub(self) :
+        tmp = self.first_lang
+        self.first_lang = self.second_lang
+        self.second_lang = tmp
+        return
 
 #取得视频文件的bigb参数设置
 def get_bigb_config(video_file : str, param : str, default : str='') -> str:
@@ -337,6 +372,9 @@ class build_controller :
         self.LANG_MODE = SUB_EVENT_LANG_MODE()
         self.ENG_SENTENCE_LEGAL = False               #英文字幕是否需要标准化（耗时操作）
         return
+    @property
+    def LM(self) :
+        return self.LANG_MODE
     def read_config(self, video_file : str) :
         print('begin BC read_config...')
         value = get_bigb_config(video_file, 'SUB_TIME_OFFSET', '0')
@@ -371,6 +409,10 @@ class build_controller :
         return self.offset
     def valid(self) -> bool :
         return self.LANG_MODE.valid()
+    #切换主次字幕后的标志同步
+    def switch_sub(self) :
+        self.LANG_MODE.switch_sub()
+        return
     def print(self) :
         print('开始打印控制器信息...')
         print('---时间偏移值={}'.format(self.get_offset()))

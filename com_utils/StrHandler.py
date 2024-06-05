@@ -725,9 +725,25 @@ def cht_to_chs(cht : str) -> str:
     line.encode('utf-8')
     return line
 
-def _is_chs_or_eng(input : str) -> bool :
+def list_cht_to_chs(inputs : list) -> list :
+    outputs = list()
+    for input in inputs :
+        output = cht_to_chs(input)
+        outputs.append(output)
+    return outputs
+
+#去掉语言检测的干扰元素
+def cut_lang_interferon(input : str) -> str :
+    cp = input
+    INTERFERONS = ('♪', '♬', '♫', '∮', )
+    for INTER in INTERFERONS :
+        cp.replace(INTER, '')
+    return cp
+
+def is_chs_or_eng(input : str) -> bool :
     failed = False
-    for c in input :
+    #for c in input :
+    for c in cut_lang_interferon(input) :
         if ord(c) < 128 :
             continue
         elif is_char_chinese(c) :
@@ -739,19 +755,19 @@ def _is_chs_or_eng(input : str) -> bool :
 
 #判断一个字符串是否全部为英文
 def is_pure_eng(input : str) -> bool :
-    return all(ord(c) < 128 for c in input)
+    return all(ord(c) < 128 for c in cut_lang_interferon(input))
 
-#字符串包含日文
+#字符串包含（至少一个）日文
 def is_contains_jap(input : str) -> bool :
     jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]') 
     return jap.search(input) != None
 
-#字符串包含日文
+#字符串包含（至少一个）韩文
 def is_contains_korean(input : str) -> bool :
     jap = re.compile(r'[\uAC00-\uD7A3]') 
     return jap.search(input) != None    
 
-#字符串包含日韩文
+#字符串包含（至少一个）日韩文
 def is_contains_JK(input : str) -> bool :
     return is_contains_jap(input) or is_contains_korean(input)
 
@@ -765,46 +781,49 @@ def is_ascii_controler(c : str) -> bool :
         controler = True
     return controler
 
-def is_symbol(c : str) -> bool :
-    symbol = False
-    ENG_SYMBOL = string.punctuation
-    CHS_SYMBOL = '！？｡＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏.。'
-    if c in ENG_SYMBOL :
-        symbol = True
-    elif c in CHS_SYMBOL :
-        symbol = True
-    return symbol
+#是否中文字符集
+def is_chs_charset(c : str) -> bool :
+    return '\u4e00' <= c <= '\u9fa5'
 
+#是否中文符号
+def is_chs_symbol(c : str) -> bool :
+    SYMBOLS = '！？｡＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏.。'
+    return c in SYMBOLS
+
+#是否英文符号
+def is_eng_symbol(c : str) -> bool :
+    SYMBOLS = string.punctuation
+    return c in SYMBOLS
+
+def is_symbol(c : str) -> bool :
+    return is_eng_symbol(c) or is_chs_symbol(c)
+
+#是否中文字符
 def is_char_chinese(c : str) -> bool :
-    ZH_SYMBOLS = '！？｡＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—‘’‛“”„‟…‧﹏.。'
-    is_zh = False
-    if '\u4e00' <= c <= '\u9fa5' :
-        is_zh = True
-    elif c in ZH_SYMBOLS :
-        is_zh = True
-    return is_zh
+    return is_chs_charset(c) or is_chs_symbol(c)
 
 #字符串全部为中文
 def is_all_chinese(input : str) -> bool :
-    for _c in input:
-        if not is_char_chinese(_c) :
+    for c in cut_lang_interferon(input) :
+        if not is_char_chinese(c) :
             return False
     return True
 
-#字符串包含中文
+#字符串包含(至少一个)中文
 def is_contains_chinese(input : str) -> bool :
-    for _c in input:
-        if '\u4e00' <= _c <= '\u9fa5':
+    for c in input:
+        if is_chs_charset(c) :
             return True
     return False    
 
 #取得一个字符串中的英文比重，0-100
 #100个字符里有1个英文字符，返回1. 100个字符里有100个英文字符，返回100。
 def get_eng_percent(input : str) -> int :
+    pure = cut_lang_interferon(input)
     percent = 0
-    count = len(input)
+    count = len(pure)
     eng_count = 0
-    for c in input :
+    for c in pure :
         if is_ascii_controler(c) :
             count -= 1
         elif (ord(c) >= 65 and ord(c) <= 90) or (ord(c) >= 97 and ord(c) <= 122) :
@@ -817,10 +836,11 @@ def get_eng_percent(input : str) -> int :
 #取得一个字符串中的中文比重，0-100
 #100个字符里有1个中文字符，返回1. 100个字符里有100个中文字符，返回100。
 def get_zh_percent(input : str) -> int :
+    pure = cut_lang_interferon(input)
     percent = 0
-    count = len(input)
+    count = len(pure)
     zh_count = 0
-    for c in input :
+    for c in pure :
         if is_ascii_controler(c) :
             count -= 1              #控制字符不计入分母
         elif is_char_chinese(c) :
@@ -830,6 +850,18 @@ def get_zh_percent(input : str) -> int :
     #print('len=%d, count=%d, zh=%d.' %(len(str), count, zh_count))
     return percent
 
+#检测字符串是否中文语言
+def is_lang_zh(input : str, Percent=0.8) -> bool :
+    if input.strip() == '' :
+        return False
+    return float(get_zh_percent(input) / 100) >= Percent
+
+#检测字符串是否英文语言
+def is_lang_eng(input : str, Percent=0.95) -> bool :
+    if input.strip() == '' :
+        return False
+    return float(get_eng_percent(input) / 100)>= Percent
+
 #检测输入文本的语言。中文返回1，英文返回2，未知返回0.
 def is_zh_or_eng(input : str) -> int :
     if is_lang_zh(input, Percent=0.3) :
@@ -837,16 +869,6 @@ def is_zh_or_eng(input : str) -> int :
     elif is_lang_eng(input) :
         return 2
     return 0
-
-def is_lang_zh(input : str, Percent=0.8) -> bool :
-    if input.strip() == '' :
-        return False
-    return float(get_zh_percent(input) / 100) >= Percent
-
-def is_lang_eng(input : str, Percent=0.95) -> bool :
-    if input.strip() == '' :
-        return False
-    return float(get_eng_percent(input) / 100)>= Percent
 
 def rip_ass_sub_closed(input : str) -> list :
     closed_table = {'}': '{', }
@@ -1172,6 +1194,33 @@ def find_one_char_diffs(names : list, SORT : int = 0) -> tuple :
     return (pos, one_diffs)
 
 #读入ini文件的一个session的全部行
+#name : session name
+#datas : 待查找的数据行集
+#begin : 从哪一行开始查找
+#返回[0]=int，找到的数据集结尾+1行号，未找到返回-1
+#返回[1]=找到的数据行list
+def read_session_ex(name : str, datas : list, begin : int = 0) -> tuple :
+    if begin < 0 or begin >= len(datas) :
+        return -1, list()
+    lines = list()
+    push = False
+    for i in range(begin, len(datas)) :
+        line = datas[i].strip()
+        if len(line) == 0 :
+            continue
+        if line.lower().find(name.lower()) == 0 :
+            push = True
+        elif len(line) >= 2 and line[0] == '[' and line[-1] == ']' :     #遇到下一个段
+            if push :
+                break
+        else :
+            if push :
+                lines.append(line)
+    return i, lines
+
+#读入ini文件的一个session的全部行
+#name : session name
+#datas : 待查找的数据行集
 def read_session(name : str, datas : list) -> list:
     lines = []
     push = False
@@ -1179,7 +1228,7 @@ def read_session(name : str, datas : list) -> list:
         check = data.strip()
         if check.lower().find(name.lower()) == 0 :
             push = True
-        elif len(check) >= 2 and check[0] == '[' and check[-1] == ']' :
+        elif len(check) >= 2 and check[0] == '[' and check[-1] == ']' :     #遇到下一个段
             if push :
                 break
         else :

@@ -32,8 +32,10 @@ class srt_sub_filer(sub_filer) :
                 if event.build_txt() :
                     self.events.append(event)
                 else :
-                    print('事件{}, 时间轴={} 编译字幕文本失败。'.format(event.get_index(), event.print_time_axis()))    
-                    pass
+                    if event.has_mt() :
+                        print('异常：事件{}, 时间轴={} 编译字幕文本失败。'.format(event.get_index(), event.print_time_axis()))
+                    else :
+                        print('忽略：事件{}无文本。'.format(event.get_index()))
             else :
                 print('异常：事件{}无效，退出。'.format(event.print()))
                 break

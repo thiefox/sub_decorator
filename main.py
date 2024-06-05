@@ -6,7 +6,7 @@ sys.path.append("./subtitle")
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
-os.environ["IMAGEIO_FFMPEG_EXE"] = "d:\\bin\\ffmpeg\\bin\\ffmpeg.exe"
+#os.environ["IMAGEIO_FFMPEG_EXE"] = "d:\\bin\\ffmpeg\\bin\\ffmpeg.exe"
 
 import Ui_MainWindow
 
